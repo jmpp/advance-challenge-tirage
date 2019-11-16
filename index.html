@@ -5,22 +5,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+
+    <style>
+        .flip-list-move {
+           transition: transform 1s;
+        }
+        li {
+            list-style: none;
+            cursor: pointer;
+        }
+        li::before {
+            content: '☰';
+            color: gray;
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+    </style>
 </head>
 <body>
 
 <main id="app">
     <button @click="shuffle">Mélanger</button>
     <button @click="sort_notes">Trier les notes</button>
-    <ol>
-        <li v-for="(participant, index) in participants">
-            <input type="text" v-model="participant.name">
-            <input type="number" min="8" max="9.9" step="0.1" size="3" v-model="participant.note">
 
-            <button @click="up(participant)">▲</button>
-            <button @click="down(participant)">▼</button>
-            <button @click="remove(participant)">❌</button>
-        </li>
-    </ol>
+    <draggable v-model="participants" @start="drag=true" @end="drag=false">
+        <transition-group name="flip-list" tag="ul">
+            <li v-for="(participant, index) in participants" :key="participant">
+                <input type="text" v-model="participant.name">
+                <input type="number" min="8" max="9.9" step="0.1" size="3" v-model="participant.note">
+                <button @click="remove(participant)">❌</button>
+            </li>
+        </transition-group>
+    </draggable>
 
     <form @submit.prevent="addParticipant">
         <input type="text" v-model="newParticipant" ref="newParticipant" v-focus placeholder="Nouveau participant ...">
@@ -31,28 +47,19 @@
     
 <script src="lib/lodash-4.17.15.min.js"></script>
 <script src="lib/vue-2.6.10.min.js"></script>
+<script src="lib/Sortable.min.js"></script>
+<script src="lib/vuedraggable.umd.min.js"></script>
 <script>
     const vm = new Vue({
         el : '#app',
+        components : {
+            'draggable' : vuedraggable
+        },
         data() {
             return {
                 newParticipant : '',
                 newParticipantNote : null,
-                participants : [
-                    /* { name : 'Ylan', note : 9.58 },
-                    { name : 'Elijah', note : 9.03 },
-                    { name : 'Raphael', note : 9.05 },
-                    { name : 'Thomas', note : 8.95 },
-                    { name : 'Noé', note : 9.05 },
-                    { name : 'Mikey', note : 9.55 },
-                    { name : 'Danny', note : 8.9 },
-                    { name : 'Rolland', note : 9.18 },
-                    { name : 'Bryan', note : 9.23 },
-                    { name : 'Julien', note : 9.38 },
-                    { name : 'Argann', note : 9.4 },
-                    { name : 'Elies', note : 9.15 },
-                    { name : 'Florian', note : 9.1 }, */
-                ]
+                participants : []
             }
         },
         methods : {
@@ -63,22 +70,6 @@
             remove(participant) {
                 this.participants = this.participants.filter(p => p !== participant);
                 saveParticipantsToStorage(this.participants);
-            },
-            up(participant) {
-                let pos = this.participants.indexOf(participant);
-                if (pos === -1 || pos === 0)
-                    return console.log('Rien à déplacer');
-
-                [ this.participants[pos], this.participants[pos - 1] ] = [ this.participants[pos - 1], this.participants[pos] ];
-                this.participants = Object.assign([], this.participants);
-            },
-            down(participant) {
-                let pos = this.participants.indexOf(participant);
-                if (pos === -1 || pos === this.participants.length - 1)
-                    return console.log('Rien à déplacer');
-
-                [ this.participants[pos], this.participants[pos + 1] ] = [ this.participants[pos + 1], this.participants[pos] ];
-                this.participants = Object.assign([], this.participants);
             },
             addParticipant() {
                 if (this.newParticipant.trim() === '')
